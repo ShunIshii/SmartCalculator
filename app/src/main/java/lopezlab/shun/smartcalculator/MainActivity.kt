@@ -2,6 +2,7 @@ package lopezlab.shun.smartcalculator
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import kotlinx.android.synthetic.main.activity_main.*
 import java.math.BigDecimal
@@ -11,6 +12,8 @@ import kotlin.math.floor
 class MainActivity : AppCompatActivity() {
 
     private var formula = ""
+    private val TAG = "MainActivity"
+    private var parenthesisCount = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -97,7 +100,14 @@ class MainActivity : AppCompatActivity() {
             formulaText.text = "0"
         }
         equal.setOnClickListener {
-            formula = calculate(formula)
+            if (checkFormula(formula)) {
+                formula = calculate(formula.toList() as ArrayList<Char>)
+
+            }
+            else {
+                val toast = Toast.makeText(applicationContext, "Invalid formula!", Toast.LENGTH_SHORT)
+                toast.show()
+            }
             formulaText.text = formula
         }
     }
@@ -106,18 +116,16 @@ class MainActivity : AppCompatActivity() {
         var isNum = false
         var isDecimal = false
         var isPower = false
-        val toast = Toast.makeText(applicationContext, "Invalid formula!", Toast.LENGTH_SHORT)
+        parenthesisCount = 0
 
         for (c in str) {
-            if (!isNum && c !in '0'..'9') {
-                toast.show()
+            if (!isNum && c !in '0'..'9' && c != '(') {
                 return false
             }
             if (c in '0'..'9' || c == '.') {
                 isNum = true
                 if (c == '.') {
                     if (isDecimal || isPower) {
-                        toast.show()
                         return false
                     }
                     else {
@@ -125,21 +133,72 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
+            else if (c == '(') {
+                if (!isNum) {
+                    parenthesisCount++
+                }
+                else {
+                    return false
+                }
+            }
+            else if (c == ')') {
+                if (isNum) {
+                    parenthesisCount--
+                }
+                else {
+                    return false
+                }
+            }
             else {
                 isPower = c == '^'
                 isNum = false
                 isDecimal = false
             }
+            Log.d(TAG, "c: $c")
         }
-        return true
+        return parenthesisCount == 0
     }
 
-    private fun calculate(str: String): String {
-        if (!checkFormula(str)) {
-            return str
+    private fun calculate(strList: ArrayList<Char>): String {
+        var i = 0
+        while (i < strList.size) {
+            if (strList[i] == '(') {
+                parenthesisCount++
+                strList.removeAt(i)
+                var newStr = ""
+                Log.d(TAG, "strList: $strList")
+                Log.d(TAG, "newStr: $newStr")
+                while (true) {
+                    if (strList[i] == ')') {
+                        parenthesisCount--
+                        if (parenthesisCount == 0) {
+                            break
+                        }
+                        else {
+                            newStr += strList[i]
+                            strList.removeAt(i)
+                        }
+                    }
+                    else {
+                        if (strList[i] == '(') {
+                            parenthesisCount++
+                        }
+                        newStr += strList[i]
+                        strList.removeAt(i)
+                    }
+                    Log.d(TAG, "strList: $strList")
+                    Log.d(TAG, "newStr: $newStr")
+                }
+                strList.removeAt(i)
+                newStr = calculate(newStr.toList() as ArrayList<Char>)
+                strList.addAll(i, newStr.toList())
+            }
+            i++
         }
 
-        val (numList, opeList) = createElementsList(str)
+        Log.d(TAG, "Final strList: $strList")
+
+        val (numList, opeList) = createElementsList(strList)
 
         val (numLis, opeLis) = power(numList, opeList)
 
@@ -154,12 +213,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun createElementsList(str: String): Pair<ArrayList<Double>, ArrayList<Char>> {
+    private fun createElementsList(strList: ArrayList<Char>): Pair<ArrayList<Double>, ArrayList<Char>> {
         val numList = ArrayList<Double>()
         val opeList = ArrayList<Char>()
         var strnum = ""
 
-        for (c in str) {
+        for (c in strList) {
             if (c in '0'..'9' || c == '.') {
                 strnum += c
             }
