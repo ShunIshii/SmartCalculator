@@ -109,6 +109,7 @@ class MainActivity : AppCompatActivity() {
                 toast.show()
             }
             formulaText.text = formula
+            if (formula == "0") formula = ""
         }
     }
 
@@ -117,6 +118,13 @@ class MainActivity : AppCompatActivity() {
         var isDecimal = false
         var isPower = false
         parenthesisCount = 0
+
+        if (str.length == 0) {
+            formula = "00"
+        }
+        else if (str.length == 1) {
+            formula = "0$formula"
+        }
 
         for (c in str) {
             if (!isNum && c !in '0'..'9' && c != '(') {
@@ -161,6 +169,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun calculate(strList: ArrayList<Char>): String {
         var i = 0
+        Log.d(TAG, "strList: " + strList)
         while (i < strList.size) {
             if (strList[i] == '(') {
                 parenthesisCount++
